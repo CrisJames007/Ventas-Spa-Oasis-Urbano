@@ -6,9 +6,6 @@ import RegisterControls from './components/RegisterControls';
 import MonthlySummary from './components/MonthlySummary';
 import { uid } from './utils/uid';
 
-// Código de administrador para restablecer calendario
-const ADMIN_CODE = '1234';
-
 const App: React.FC = () => {
   const [services, setServices] = useState<CatalogItem[]>(() => {
     const saved = localStorage.getItem('services');
@@ -45,6 +42,11 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : false;
   });
 
+  const [adminCode, setAdminCode] = useState<string>(() => {
+    const saved = localStorage.getItem('adminCode');
+    return saved ? JSON.parse(saved) : '1234';
+  });
+
   useEffect(() => { localStorage.setItem('services', JSON.stringify(services)); }, [services]);
   useEffect(() => { localStorage.setItem('products', JSON.stringify(products)); }, [products]);
   useEffect(() => { localStorage.setItem('employees', JSON.stringify(employees)); }, [employees]);
@@ -52,6 +54,7 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem('salesHistory', JSON.stringify(salesHistory)); }, [salesHistory]);
   useEffect(() => { localStorage.setItem('dailyClosings', JSON.stringify(dailyClosings)); }, [dailyClosings]);
   useEffect(() => { localStorage.setItem('isRegisterOpen', JSON.stringify(isRegisterOpen)); }, [isRegisterOpen]);
+  useEffect(() => { localStorage.setItem('adminCode', JSON.stringify(adminCode)); }, [adminCode]);
 
   const addService = (name: string, price: number) => {
     const newItem: CatalogItem = { id: uid(), name, price, type: 'service' };
@@ -100,39 +103,60 @@ const App: React.FC = () => {
     setCurrentSales(prev => prev.filter(s => s.id !== id));
   };
 
+  const deleteHistorySale = (id: string) => {
+    const sale = salesHistory.find(s => s.id === id);
+    if (sale) {
+      setSalesHistory(prev => prev.filter(s => s.id !== id));
+      // Actualizar el cierre diario correspondiente
+      const saleDate = new Date(sale.timestamp);
+      const localDate = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}-${String(saleDate.getDate()).padStart(2, '0')}`;
+      setDailyClosings(prev => {
+        const index = prev.findIndex(c => c.date === localDate);
+        if (index > -1) {
+          const updated = [...prev];
+          updated[index] = {
+            ...updated[index],
+            totalAmount: Math.max(0, updated[index].totalAmount - sale.amount)
+          };
+          return updated;
+        }
+        return prev;
+      });
+    }
+  };
+
+  const changeAdminCode = (newCode: string) => {
+    setAdminCode(newCode);
+  };
+
   const openRegister = () => {
     setIsRegisterOpen(true);
   };
 
   const currentTotal = currentSales.reduce((sum, s) => sum + (s.amount || 0), 0);
 
-  // Función para restablecer el calendario (requiere código de admin)
   const resetCalendar = () => {
     setDailyClosings([]);
+    setSalesHistory([]);
   };
 
-  // FUNCIÓN CORREGIDA: Cierre de caja y registro de historial
   const closeRegister = () => {
     if (!isRegisterOpen) {
       alert("La caja ya está cerrada.");
       return;
     }
     
-    const confirmMsg = `¿Desea CERRAR LA CAJA ahora?\n\nTotal del turno: ${currentTotal.toFixed(2)} bs\nVentas realizadas: ${currentSales.length}`;
+    const confirmMsg = `¿Desea CERRAR LA CAJA ahora?\n\nTotal del turno: ${currentTotal.toFixed(2)} Bs\nVentas realizadas: ${currentSales.length}`;
     
     if (window.confirm(confirmMsg)) {
-      // 1. Obtener los datos actuales de la sesión
       const salesToArchive = [...currentSales];
       const sessionTotal = currentTotal;
       
-      // 2. Definir la fecha local para el registro diario
       const now = new Date();
       const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-      // 3. Guardar en el historial general (Sidebar izquierdo)
       setSalesHistory(prev => [...prev, ...salesToArchive]);
 
-      // 4. Actualizar cierres diarios para el resumen mensual
       if (sessionTotal > 0) {
         setDailyClosings(prev => {
           const index = prev.findIndex(c => c.date === localDate);
@@ -148,12 +172,10 @@ const App: React.FC = () => {
         });
       }
 
-      // 5. REINICIAR TODO Y CERRAR
-      setCurrentSales([]); // Caja vuelve a cero
-      setIsRegisterOpen(false); // Estado de la caja a INACTIVA
+      setCurrentSales([]);
+      setIsRegisterOpen(false);
       
-      console.log("Caja cerrada y datos guardados.");
-      alert('¡Caja Cerrada con éxito! Las ventas se movieron al historial y el saldo actual es 0 bs.');
+      alert('¡Caja Cerrada con éxito! Las ventas se movieron al historial.');
     }
   };
 
@@ -165,12 +187,15 @@ const App: React.FC = () => {
         employees={employees}
         currentSales={currentSales}
         salesHistory={salesHistory}
+        adminCode={adminCode}
         onAddService={addService}
         onAddProduct={addProduct}
         onAddEmployee={addEmployee}
         onDeleteItem={deleteItem}
         onDeleteEmployee={deleteEmployee}
         onDeleteSale={deleteSale}
+        onDeleteHistorySale={deleteHistorySale}
+        onChangeAdminCode={changeAdminCode}
       />
       
       <main className="flex-grow p-8 overflow-y-auto">
@@ -200,7 +225,7 @@ const App: React.FC = () => {
                 {isRegisterOpen ? 'Efectivo Actual en Caja' : 'Caja Cerrada (Saldo 0.00)'} 
               </p>
               <span className={`text-7xl font-black block ${isRegisterOpen ? 'text-green-600' : 'text-red-600'}`}> 
-                {isRegisterOpen ? currentTotal.toFixed(2) : "0.00"} <span className="text-2xl">bs</span> 
+                {isRegisterOpen ? currentTotal.toFixed(2) : "0.00"} <span className="text-2xl">Bs</span> 
               </span>
               {!isRegisterOpen && (
                 <div className="mt-4 inline-block bg-red-600 text-white px-4 py-1 rounded-full text-xs font-black uppercase animate-pulse">
@@ -210,7 +235,7 @@ const App: React.FC = () => {
             </div>
           </section>
 
-          <MonthlySummary dailyClosings={dailyClosings} onResetCalendar={resetCalendar} />
+          <MonthlySummary dailyClosings={dailyClosings} onResetCalendar={resetCalendar} adminCode={adminCode} />
         </div>
       </main>
     </div>

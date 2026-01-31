@@ -4,14 +4,13 @@ import { DailyClosing } from '../types';
 interface MonthlySummaryProps {
   dailyClosings: DailyClosing[];
   onResetCalendar?: () => void;
+  adminCode: string;
 }
 
-const ADMIN_CODE = '1234'; // Código de administrador
-
-const MonthlySummary: React.FC<MonthlySummaryProps> = ({ dailyClosings, onResetCalendar }) => {
+const MonthlySummary: React.FC<MonthlySummaryProps> = ({ dailyClosings, onResetCalendar, adminCode }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showResetModal, setShowResetModal] = useState(false);
-  const [adminCode, setAdminCode] = useState('');
+  const [inputCode, setInputCode] = useState('');
   const [codeError, setCodeError] = useState(false);
 
   const year = currentDate.getFullYear();
@@ -51,17 +50,17 @@ const MonthlySummary: React.FC<MonthlySummaryProps> = ({ dailyClosings, onResetC
 
   const handleResetClick = () => {
     setShowResetModal(true);
-    setAdminCode('');
+    setInputCode('');
     setCodeError(false);
   };
 
   const handleConfirmReset = () => {
-    if (adminCode === ADMIN_CODE) {
+    if (inputCode === adminCode) {
       if (onResetCalendar) {
         onResetCalendar();
       }
       setShowResetModal(false);
-      setAdminCode('');
+      setInputCode('');
       setCodeError(false);
       alert('Calendario restablecido correctamente. Total del mes: 0.00 Bs');
     } else {
@@ -71,7 +70,7 @@ const MonthlySummary: React.FC<MonthlySummaryProps> = ({ dailyClosings, onResetC
 
   const handleCancelReset = () => {
     setShowResetModal(false);
-    setAdminCode('');
+    setInputCode('');
     setCodeError(false);
   };
 
@@ -189,9 +188,9 @@ const MonthlySummary: React.FC<MonthlySummaryProps> = ({ dailyClosings, onResetC
               </label>
               <input
                 type="password"
-                value={adminCode}
+                value={inputCode}
                 onChange={(e) => {
-                  setAdminCode(e.target.value);
+                  setInputCode(e.target.value);
                   setCodeError(false);
                 }}
                 placeholder="Ingrese el código..."

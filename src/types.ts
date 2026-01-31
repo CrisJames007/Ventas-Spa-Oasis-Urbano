@@ -18,7 +18,7 @@ export interface Sale {
   employeeId: string;
   items: { itemId: string; quantity: number }[];
   amount: number;
-  paymentMethod: 'cash' | 'card' | 'transfer';
+  paymentMethod: 'cash' | 'qr';
   notes?: string;
 }
 
