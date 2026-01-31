@@ -6,6 +6,9 @@ import RegisterControls from './components/RegisterControls';
 import MonthlySummary from './components/MonthlySummary';
 import { uid } from './utils/uid';
 
+// Código de administrador para restablecer calendario
+const ADMIN_CODE = '1234';
+
 const App: React.FC = () => {
   const [services, setServices] = useState<CatalogItem[]>(() => {
     const saved = localStorage.getItem('services');
@@ -102,6 +105,11 @@ const App: React.FC = () => {
   };
 
   const currentTotal = currentSales.reduce((sum, s) => sum + (s.amount || 0), 0);
+
+  // Función para restablecer el calendario (requiere código de admin)
+  const resetCalendar = () => {
+    setDailyClosings([]);
+  };
 
   // FUNCIÓN CORREGIDA: Cierre de caja y registro de historial
   const closeRegister = () => {
@@ -202,7 +210,7 @@ const App: React.FC = () => {
             </div>
           </section>
 
-          <MonthlySummary dailyClosings={dailyClosings} />
+          <MonthlySummary dailyClosings={dailyClosings} onResetCalendar={resetCalendar} />
         </div>
       </main>
     </div>
